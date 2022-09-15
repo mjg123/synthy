@@ -1,29 +1,25 @@
-// ------------------------------ //
-// 0. The params module & imports //
-// ------------------------------ //
 mod params;
 
 use fundsp::hacker::*;
 use params::{Parameter, Parameters};
-use std::sync::Arc;
+use std::{convert::TryFrom, sync::Arc};
 use vst::prelude::*;
+use wmidi::{Note, Velocity};
 
 const FREQ_SCALAR: f64 = 1000.;
 
 struct Synthy {
     audio: Box<dyn AudioUnit64 + Send>,
-    // ---------------------------------------- //
-    // 1. Adding a thread-safe parameters field //
-    // ---------------------------------------- //
     parameters: Arc<Parameters>,
+    // -------------------------------- //
+    // 1. Storing the note as an option //
+    // -------------------------------- //
+    note: Option<(Note, Velocity)>,
 }
 
 impl Plugin for Synthy {
     #[allow(clippy::precedence)]
     fn new(_host: HostCallback) -> Self {
-        // --------------------------------------- //
-        // 2. Adding parameters to our audio graph //
-        // --------------------------------------- //
         let Parameters { freq, modulation } = Parameters::default();
         let hz = freq.get() as f64 * FREQ_SCALAR;
 
@@ -36,12 +32,10 @@ impl Plugin for Synthy {
         Self {
             audio: Box::new(audio_graph) as Box<dyn AudioUnit64 + Send>,
             parameters: Default::default(),
+            note: None,
         }
     }
 
-    // ---------------------------------- //
-    // 3. Revealing parameters to our DAW //
-    // ---------------------------------- //
     fn get_info(&self) -> Info {
         Info {
             name: "synthy".into(),
@@ -51,13 +45,11 @@ impl Plugin for Synthy {
             inputs: 0,
             outputs: 2,
             parameters: 2,
+            // midi_inputs: 1,   <-- default is 0 which means "all channels"
             ..Info::default()
         }
     }
 
-    // --------------- //
-    // 4. Housekeeping //
-    // --------------- //
     fn get_parameter_object(&mut self) -> Arc<dyn PluginParameters> {
         Arc::clone(&self.parameters) as Arc<dyn PluginParameters>
     }
@@ -66,10 +58,6 @@ impl Plugin for Synthy {
         let (_, mut outputs) = buffer.split();
         if outputs.len() == 2 {
             let (left, right) = (outputs.get_mut(0), outputs.get_mut(1));
-
-            // ---------------------------- //
-            // 5. Modifying the audio graph //
-            // ---------------------------- //
             for (left_chunk, right_chunk) in left
                 .chunks_mut(MAX_BUFFER_SIZE)
                 .zip(right.chunks_mut(MAX_BUFFER_SIZE))
@@ -82,9 +70,12 @@ impl Plugin for Synthy {
                     self.parameters.get_parameter(Parameter::Modulation as i32) as f64,
                 );
 
+                // ------------------------ //
+                // 2. Setting the frequency //
+                // ------------------------ //
                 self.audio.set(
                     Parameter::Freq as i64,
-                    self.parameters.get_parameter(Parameter::Freq as i32) as f64 * FREQ_SCALAR,
+                    self.note.map(|(n, ..)| n.to_freq_f64()).unwrap_or(0.),
                 );
 
                 self.audio.process(
@@ -101,6 +92,40 @@ impl Plugin for Synthy {
                     *chunk = *output as f32;
                 }
             }
+        }
+    }
+
+    fn process_events(&mut self, events: &vst::api::Events) {
+        for event in events.events() {
+            if let vst::event::Event::Midi(midi) = event {
+                if let Ok(midi) = wmidi::MidiMessage::try_from(midi.data.as_slice()) {
+                    // ------------------------- //
+                    // 3. Processing MIDI events //
+                    // ------------------------- //
+                    match midi {
+                        wmidi::MidiMessage::NoteOn(_channel, note, velocity) => {
+                            // panic!("oh fucking no");
+                            self.note = Some((note, velocity));
+                        }
+                        wmidi::MidiMessage::NoteOff(_channel, note, _velocity) => {
+                            if let Some((current_note, ..)) = self.note {
+                                if current_note == note {
+                                    self.note = None;
+                                }
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+        }
+    }
+
+    fn can_do(&self, can_do: CanDo) -> Supported {
+        match can_do {
+            CanDo::ReceiveEvents => Supported::Yes,
+            CanDo::ReceiveMidiEvent => Supported::Yes,
+            _ => Supported::Maybe,
         }
     }
 }
