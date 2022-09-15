@@ -13,3 +13,13 @@ fundsp = "0.9.0"
 num-derive = "0.3"
 num-traits = "0.2"
 wmidi = "4"
+
+log = "0.4"
+simplelog = "0.11"
+log-panics = "2"
+dirs = "4.0"
+
+egui = "0.15"
+egui-baseview = {git = "https://github.com/BillyDM/egui-baseview" }
+baseview = { git = "https://github.com/RustAudio/baseview.git", rev = "f6e99e9aa6f5aeb6b721cb05e4d882a51d995909" }
+raw-window-handle = "0.3"

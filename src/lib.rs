@@ -1,3 +1,4 @@
+mod editor;
 mod params;
 
 use std::ops::RangeInclusive;
@@ -19,9 +20,28 @@ struct Synthy {
     enabled: bool,
     sample_rate: f32,
     time: Duration,
+    editor: Option<editor::PluginEditor>,
 }
 
 impl Plugin for Synthy {
+    fn init(&mut self) {
+        // Set up logs, adapted from code from DGriffin91
+        // MIT: https://github.com/DGriffin91/egui_baseview_test_vst2/blob/main/LICENSE
+        let Info { name, version, .. } = self.get_info();
+        let home = dirs::home_dir().unwrap();
+        let id_string = "mjg-synth-log.txt";
+        let log_file = std::fs::File::options()
+            .append(true)
+            .open(home.join(id_string))
+            .unwrap();
+        let log_config = ::simplelog::ConfigBuilder::new()
+            .set_time_to_local(true)
+            .build();
+        simplelog::WriteLogger::init(simplelog::LevelFilter::Info, log_config, log_file).ok();
+        log_panics::init();
+        log::info!("{} v{} init", name, version);
+    }
+
     #[allow(clippy::precedence)]
     fn new(_host: HostCallback) -> Self {
         // ------------------------------ //
@@ -44,13 +64,19 @@ impl Plugin for Synthy {
             >> declick()
             >> split::<U2>();
 
+        let params: Arc<Parameters> = Arc::new(Default::default());
         Self {
             audio: Box::new(audio_graph) as Box<dyn AudioUnit64 + Send>,
-            parameters: Default::default(),
+            parameters: params.clone(),
             note: None,
             time: Duration::default(),
             sample_rate: 41_000f32,
             enabled: false,
+            editor: Some(editor::PluginEditor {
+                params,
+                window_handle: None,
+                is_open: false,
+            }),
         }
     }
 
@@ -66,6 +92,7 @@ impl Plugin for Synthy {
             inputs: 0,
             outputs: 2,
             parameters: 1,
+            version: 2,
             ..Info::default()
         }
     }
@@ -146,6 +173,14 @@ impl Plugin for Synthy {
             CanDo::ReceiveEvents => Supported::Yes,
             CanDo::ReceiveMidiEvent => Supported::Yes,
             _ => Supported::Maybe,
+        }
+    }
+
+    fn get_editor(&mut self) -> Option<Box<dyn vst::editor::Editor>> {
+        if let Some(editor) = self.editor.take() {
+            Some(Box::new(editor) as Box<dyn vst::editor::Editor>)
+        } else {
+            None
         }
     }
 
