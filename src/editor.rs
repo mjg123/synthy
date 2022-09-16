@@ -8,8 +8,8 @@ use vst::{editor::Editor, plugin::PluginParameters};
 // ------------------ //
 // 1. Setting UI size //
 // ------------------ //
-const WINDOW_WIDTH: usize = 256;
-const WINDOW_HEIGHT: usize = 256;
+const WINDOW_WIDTH: usize = 640;
+const WINDOW_HEIGHT: usize = 480;
 
 // --------------------------------- //
 // 2. Creating `PluginEditor` struct //
@@ -136,6 +136,24 @@ fn draw_ui(ctx: &CtxRef, params: &mut Arc<Parameters>) -> egui::Response {
                     "Modulation: {}",
                     params.get_parameter(crate::Parameter::Modulation as i32)
                 ));
+                ui.label(format!(
+                    "Counter {}",
+                    params.get_parameter(crate::Parameter::Counter as i32)
+                ));
+                ui.horizontal(|ui| {
+                    if ui.button("-").clicked() {
+                        params.modify_parameter(crate::Parameter::Counter as i32, |v| {
+                            (v - 0.1).max(0.0)
+                        });
+                        log::info!("click");
+                    }
+                    if ui.button("+").clicked() {
+                        params.modify_parameter(crate::Parameter::Counter as i32, |v| {
+                            (v + 0.1).min(1.0)
+                        });
+                        log::info!("click");
+                    }
+                });
             })
         })
         .response

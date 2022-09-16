@@ -47,7 +47,7 @@ impl Plugin for Synthy {
         // ------------------------------ //
         // 2. Removal of Parameters::Freq //
         // ------------------------------ //
-        let Parameters { modulation } = Parameters::default();
+        let Parameters { modulation, .. } = Parameters::default();
 
         let freq = || tag(Tag::Freq as i64, 440.);
         let modulation = || tag(Tag::Modulation as i64, modulation.get() as f64);
