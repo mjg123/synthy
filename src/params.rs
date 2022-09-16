@@ -5,14 +5,14 @@ use vst::{plugin::PluginParameters, util::AtomicFloat};
 
 pub struct Parameters {
     pub modulation: AtomicFloat,
-    pub counter: AtomicFloat,
+    pub volume: AtomicFloat,
 }
 
 impl Default for Parameters {
     fn default() -> Self {
         Self {
             modulation: AtomicFloat::new(1.),
-            counter: AtomicFloat::new(0.),
+            volume: AtomicFloat::new(0.5),
         }
     }
 }
@@ -21,7 +21,7 @@ impl PluginParameters for Parameters {
     fn get_parameter(&self, index: i32) -> f32 {
         match FromPrimitive::from_i32(index) {
             Some(Parameter::Modulation) => self.modulation.get(),
-            Some(Parameter::Counter) => self.counter.get(),
+            Some(Parameter::Counter) => self.volume.get(),
 
             _ => 0f32,
         }
@@ -31,7 +31,7 @@ impl PluginParameters for Parameters {
     fn set_parameter(&self, index: i32, value: f32) {
         match FromPrimitive::from_i32(index) {
             Some(Parameter::Modulation) => self.modulation.set(value),
-            Some(Parameter::Counter) => self.counter.set(value),
+            Some(Parameter::Counter) => self.volume.set(value),
             _ => (),
         }
     }
@@ -68,7 +68,7 @@ impl Parameters {
         log::info!("Modifying");
         match FromPrimitive::from_i32(index) {
             Some(Parameter::Modulation) => self.modulation.set(f(self.modulation.get())),
-            Some(Parameter::Counter) => self.counter.set(f(self.counter.get())),
+            Some(Parameter::Counter) => self.volume.set(f(self.volume.get())),
             _ => (),
         }
     }

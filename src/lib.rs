@@ -47,10 +47,13 @@ impl Plugin for Synthy {
         // ------------------------------ //
         // 2. Removal of Parameters::Freq //
         // ------------------------------ //
-        let Parameters { modulation, .. } = Parameters::default();
+        let Parameters {
+            modulation, volume, ..
+        } = Parameters::default();
 
         let freq = || tag(Tag::Freq as i64, 440.);
         let modulation = || tag(Tag::Modulation as i64, modulation.get() as f64);
+        let volume = || tag(Tag::Volume as i64, volume.get() as f64);
 
         // ---------------------- //
         // 3. Envelope generation //
@@ -60,7 +63,7 @@ impl Plugin for Synthy {
 
         let audio_graph = freq()
             >> sine() * freq() * modulation() + freq()
-            >> env() * sine()
+            >> env() * sine() * volume()
             >> declick()
             >> split::<U2>();
 
@@ -113,6 +116,7 @@ impl Plugin for Synthy {
                 let mut right_buffer = [0f64; MAX_BUFFER_SIZE];
 
                 self.set_tag_with_param(Tag::Modulation, Parameter::Modulation, 0f64..=10f64);
+                self.set_tag_with_param(Tag::Volume, Parameter::Counter, 0f64..=1f64);
 
                 if let Some((note, ..)) = self.note {
                     self.set_tag(Tag::Freq, note.to_freq_f64())
@@ -213,6 +217,7 @@ pub enum Tag {
     Freq = 0,
     Modulation = 1,
     NoteOn = 2,
+    Volume = 3,
 }
 
 vst::plugin_main!(Synthy);

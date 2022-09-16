@@ -137,7 +137,7 @@ fn draw_ui(ctx: &CtxRef, params: &mut Arc<Parameters>) -> egui::Response {
                     params.get_parameter(crate::Parameter::Modulation as i32)
                 ));
                 ui.label(format!(
-                    "Counter {}",
+                    "Volume {}",
                     params.get_parameter(crate::Parameter::Counter as i32)
                 ));
                 ui.horizontal(|ui| {
