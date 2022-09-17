@@ -128,6 +128,7 @@ unsafe impl HasRawWindowHandle for VstParent {
 
 #[inline(always)]
 fn draw_ui(ctx: &CtxRef, params: &mut Arc<Parameters>) -> egui::Response {
+    let mut slider_value = params.get_parameter(crate::Parameter::SliderValue as i32);
     egui::CentralPanel::default()
         .show(ctx, |ui| {
             ui.vertical(|ui| {
@@ -154,7 +155,16 @@ fn draw_ui(ctx: &CtxRef, params: &mut Arc<Parameters>) -> egui::Response {
                         log::info!("click");
                     }
                 });
+                if ui
+                    .add(egui::Slider::new(&mut slider_value, 0.0..=100.0).text("Slider value"))
+                    .changed()
+                {
+                    log::info!("Storing slider value: {}", slider_value);
+                    params.set_parameter(crate::Parameter::SliderValue as i32, slider_value);
+                }
             })
         })
         .response
+
+    //perhaps here is where we would read and persist `value`?
 }

@@ -6,6 +6,7 @@ use vst::{plugin::PluginParameters, util::AtomicFloat};
 pub struct Parameters {
     pub modulation: AtomicFloat,
     pub volume: AtomicFloat,
+    pub slider_value: AtomicFloat,
 }
 
 impl Default for Parameters {
@@ -13,6 +14,7 @@ impl Default for Parameters {
         Self {
             modulation: AtomicFloat::new(1.),
             volume: AtomicFloat::new(0.5),
+            slider_value: AtomicFloat::new(10.0),
         }
     }
 }
@@ -22,7 +24,7 @@ impl PluginParameters for Parameters {
         match FromPrimitive::from_i32(index) {
             Some(Parameter::Modulation) => self.modulation.get(),
             Some(Parameter::Counter) => self.volume.get(),
-
+            Some(Parameter::SliderValue) => self.slider_value.get(),
             _ => 0f32,
         }
     }
@@ -32,6 +34,7 @@ impl PluginParameters for Parameters {
         match FromPrimitive::from_i32(index) {
             Some(Parameter::Modulation) => self.modulation.set(value),
             Some(Parameter::Counter) => self.volume.set(value),
+            Some(Parameter::SliderValue) => self.slider_value.set(value),
             _ => (),
         }
     }
@@ -48,6 +51,7 @@ impl PluginParameters for Parameters {
 pub enum Parameter {
     Modulation = 0,
     Counter = 1,
+    SliderValue = 2,
 }
 
 impl Display for Parameter {
@@ -58,6 +62,7 @@ impl Display for Parameter {
             match self {
                 Parameter::Modulation => "modulation",
                 Parameter::Counter => "counter",
+                Parameter::SliderValue => "slider_value",
             }
         )
     }
